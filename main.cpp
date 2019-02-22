@@ -1,11 +1,12 @@
-#include "MainWidget.h"
+#include "realtimedemo.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    Widget w;
-    w.show();
+    QApplication app(argc, argv);
+    app.setStyleSheet("* {font-family:arial;font-size:11px}");
+    RealtimeDemo demo;
+    demo.show();
 
-    return a.exec();
+    return app.exec();
 }
