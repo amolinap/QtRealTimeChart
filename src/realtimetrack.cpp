@@ -11,17 +11,6 @@
 
 using namespace std;
 
-
-int main(int argc, char *argv[])
-{
-    QApplication app(argc, argv);
-    app.setStyleSheet("* {font-family:arial;font-size:11px}");
-    RealtimeTrack demo;
-    demo.show();
-    return app.exec();
-}
-
-
 static const int DataInterval = 250;
 
 RealtimeTrack::RealtimeTrack(QWidget *parent) :
@@ -92,7 +81,7 @@ RealtimeTrack::RealtimeTrack(QWidget *parent) :
         SLOT(onMouseMovePlotArea(QMouseEvent*)));
 
     // Clear data arrays to Chart::NoValue
-    for (int i = 0; i < sampleSize; ++i)
+    for (int i = 0; i < sampleSizeTrack; ++i)
         m_timeStamps[i] = m_dataSeriesA[i] = m_dataSeriesB[i] = m_dataSeriesC[i] = Chart::NoValue;
     m_currentIndex = 0;
 
@@ -151,7 +140,7 @@ void RealtimeTrack::getData()
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
         // After obtaining the new values, we need to update the data arrays.
-        if (m_currentIndex < sampleSize)
+        if (m_currentIndex < sampleSizeTrack)
         {
             // Store the new values in the current index position, and increment the index.
             m_dataSeriesA[m_currentIndex] = dataA;
@@ -163,10 +152,10 @@ void RealtimeTrack::getData()
         else
         {
             // The data arrays are full. Shift the arrays and store the values at the end.
-            shiftData(m_dataSeriesA, sampleSize, dataA);
-            shiftData(m_dataSeriesB, sampleSize, dataB);
-            shiftData(m_dataSeriesC, sampleSize, dataC);
-            shiftData(m_timeStamps, sampleSize, currentTime);
+            shiftData(m_dataSeriesA, sampleSizeTrack, dataA);
+            shiftData(m_dataSeriesB, sampleSizeTrack, dataB);
+            shiftData(m_dataSeriesC, sampleSizeTrack, dataC);
+            shiftData(m_timeStamps, sampleSizeTrack, currentTime);
         }
 
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
@@ -254,7 +243,7 @@ void RealtimeTrack::drawChart()
     if (firstTime != Chart::NoValue)
     {
         // Set up the x-axis to show the time range in the data buffer
-        c->xAxis()->setDateScale(firstTime, firstTime + DataInterval * sampleSize / 1000);
+        c->xAxis()->setDateScale(firstTime, firstTime + DataInterval * sampleSizeTrack / 1000);
         
         // Set the x-axis label format
         c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
@@ -263,12 +252,12 @@ void RealtimeTrack::drawChart()
         LineLayer *layer = c->addLineLayer();
 
         // The x-coordinates are the timeStamps.
-        layer->setXData(DoubleArray(m_timeStamps, sampleSize));
+        layer->setXData(DoubleArray(m_timeStamps, sampleSizeTrack));
 
         // The 3 data series are used to draw 3 lines.
-        layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSize), 0xff0000, "Alpha");
-        layer->addDataSet(DoubleArray(m_dataSeriesB, sampleSize), 0x00cc00, "Beta");
-        layer->addDataSet(DoubleArray(m_dataSeriesC, sampleSize), 0x0000ff, "Gamma");
+        layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeTrack), 0xff0000, "Alpha");
+        layer->addDataSet(DoubleArray(m_dataSeriesB, sampleSizeTrack), 0x00cc00, "Beta");
+        layer->addDataSet(DoubleArray(m_dataSeriesC, sampleSizeTrack), 0x0000ff, "Gamma");
     }
 
     // Include track line with legend. If the mouse is on the plot area, show the track 

@@ -8,7 +8,7 @@
 #include "qchartviewer.h"
 
 // The number of samples per data series used in this demo
-const int sampleSize = 240;
+const int sampleSizeTrack = 240;
 
 class RealtimeTrack : public QDialog {
     Q_OBJECT
@@ -19,10 +19,10 @@ public:
 private:
     int m_currentIndex;                 // Index of the array position to which new values are added.
 
-    double m_timeStamps[sampleSize];	// The timestamps for the data series
-    double m_dataSeriesA[sampleSize];	// The values for the data series A
-    double m_dataSeriesB[sampleSize];	// The values for the data series B
-    double m_dataSeriesC[sampleSize];	// The values for the data series C
+    double m_timeStamps[sampleSizeTrack];	// The timestamps for the data series
+    double m_dataSeriesA[sampleSizeTrack];	// The values for the data series A
+    double m_dataSeriesB[sampleSizeTrack];	// The values for the data series B
+    double m_dataSeriesC[sampleSizeTrack];	// The values for the data series C
 
     QDateTime m_nextDataTime;           // Used by the random number generator to generate realtime data.
 
