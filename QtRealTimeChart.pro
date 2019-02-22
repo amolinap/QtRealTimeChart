@@ -13,10 +13,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     src/qchartviewer.cpp \
-    src/realtimedemo.cpp
+    src/realtimedemo.cpp \
+    src/realtimezoomscroll.cpp
 
 HEADERS  += src/qchartviewer.h \
-    src/realtimedemo.h
+    src/realtimedemo.h \
+    src/realtimezoomscroll.h
 
 RESOURCES += realtimedemo.qrc
 
