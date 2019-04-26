@@ -279,9 +279,12 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
 
     if (lastTime != Chart::NoValue)
     {
-        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
+        double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
+        double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() + viewer->getViewPortWidth());
 
-        qDebug()<<"isInMouseMoveEvent"<<lastTime - DataInterval * sampleSizeDemo / 1000;
+        c->xAxis()->setDateScale(viewPortStartDate, viewPortEndDate);
+
+        qDebug()<<"isInMouseMoveEvent"<<lastTime - DataInterval * m_currentIndex / 1000;
 
         layer->setXData(DoubleArray(valores[0].constData(), m_currentIndex));
         layer->addDataSet(DoubleArray(valores[1].constData(), m_currentIndex), 0xff0000, "Alfa");
