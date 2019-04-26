@@ -14,11 +14,13 @@ TEMPLATE = app
 SOURCES += main.cpp \
     src/qchartviewer.cpp \
     src/realtimedemo.cpp \
+    src/realtimedemozoomscroll.cpp \
     src/realtimezoomscroll.cpp \
     src/realtimetrack.cpp
 
 HEADERS  += src/qchartviewer.h \
     src/realtimedemo.h \
+    src/realtimedemozoomscroll.h \
     src/realtimezoomscroll.h \
     src/realtimetrack.h
 
