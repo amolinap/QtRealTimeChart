@@ -7,6 +7,8 @@
 #include <QLabel>
 #include <QScrollBar>
 #include <QDebug>
+#include <QMap>
+#include <QVector>
 
 #include "qchartviewer.h"
 
@@ -20,10 +22,7 @@ public:
     ~RealtimeDemoZoomScroll();
 
 private:
-    double m_timeStamps[sampleSizeDemo];	// The timestamps for the data series
-    double m_dataSeriesA[sampleSizeDemo];	// The values for the data series A
-    double m_dataSeriesB[sampleSizeDemo];	// The values for the data series B
-    double m_dataSeriesC[sampleSizeDemo];	// The values for the data series C
+    QMap<int, QVector<double> > valores;
 
     quint32 m_currentIndex;                 // Index of the array position to which new values are added.
 

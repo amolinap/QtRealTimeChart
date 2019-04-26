@@ -113,8 +113,8 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
     m_ChartViewer->setMouseWheelZoomRatio(1.1);
 
     // Clear data arrays to Chart::NoValue
-    for (int i = 0; i < sampleSizeDemo; ++i)
-        m_timeStamps[i] = m_dataSeriesA[i] = m_dataSeriesB[i] = m_dataSeriesC[i] = Chart::NoValue;
+    //for (int i = 0; i < sampleSizeDemo; ++i)
+    //    m_timeStamps[i] = m_dataSeriesA[i] = m_dataSeriesB[i] = m_dataSeriesC[i] = Chart::NoValue;
     m_currentIndex = 0;
 
     // Set m_nextDataTime to the current time. It is used by the real time random number
@@ -231,14 +231,10 @@ void RealtimeDemoZoomScroll::getData()
         double dataB = 150 + 100 * sin(p / 27.7) * sin(p / 10.1);
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
-        shiftData(m_dataSeriesA, sampleSizeDemo, dataA);
-        shiftData(m_dataSeriesB, sampleSizeDemo, dataB);
-        shiftData(m_dataSeriesC, sampleSizeDemo, dataC);
-        shiftData(m_timeStamps, sampleSizeDemo, currentTime);
-        /*m_timeStamps[m_currentIndex] = currentTime;
-        m_dataSeriesA[m_currentIndex] = dataA;
-        m_dataSeriesB[m_currentIndex] = dataB;
-        m_dataSeriesC[m_currentIndex] = dataC;*/
+        valores[0].append(currentTime);
+        valores[1].append(dataA);
+        valores[2].append(dataB);
+        valores[3].append(dataC);
 
         ++m_currentIndex;
 
@@ -246,9 +242,11 @@ void RealtimeDemoZoomScroll::getData()
     }
     while (m_nextDataTime < now);
 
-    m_ValueA->setText(QString::number(m_dataSeriesA[sampleSizeDemo - 1], 'f', 2));
-    m_ValueB->setText(QString::number(m_dataSeriesB[sampleSizeDemo - 1], 'f', 2));
-    m_ValueC->setText(QString::number(m_dataSeriesC[sampleSizeDemo - 1], 'f', 2));
+    m_ValueA->setText(QString::number(valores[1].value(valores[1].count()-1), 'f', 2));
+    m_ValueB->setText(QString::number(valores[2].value(valores[2].count()-1), 'f', 2));
+    m_ValueC->setText(QString::number(valores[3].value(valores[3].count()-1), 'f', 2));
+
+    qDebug()<<"Index: "<<m_currentIndex;
 }
 
 //
@@ -277,17 +275,16 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
     layer->setLineWidth(2);
     layer->setFastLineMode();
 
-    double lastTime = m_timeStamps[sampleSizeDemo - 1];
+    double lastTime = valores[0].at(m_currentIndex - 1);
 
     if (lastTime != Chart::NoValue)
     {
         c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
 
-        layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
+        qDebug()<<"isInMouseMoveEvent"<<lastTime - DataInterval * sampleSizeDemo / 1000;
 
-        char buffer[1024];
-        sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
-        layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
+        layer->setXData(DoubleArray(valores[0].constData(), m_currentIndex));
+        layer->addDataSet(DoubleArray(valores[1].constData(), m_currentIndex), 0xff0000, "Alfa");
     }
 
     c->xAxis()->setTickDensity(75);
@@ -302,8 +299,7 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
 
     if (!viewer->isInMouseMoveEvent())
     {
-        trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() :
-                                                      viewer->getPlotAreaMouseX());
+        trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() : viewer->getPlotAreaMouseX());
 
         qDebug()<<"isInMouseMoveEvent";
     }
@@ -349,8 +345,8 @@ void RealtimeDemoZoomScroll::updateChart()
         // As we added more data, we may need to update the full range of the viewport.
         //
 
-        double startDate = m_timeStamps[0];
-        double endDate = m_timeStamps[m_currentIndex - 1];
+        double startDate = valores[0].at(0);
+        double endDate = valores[0].at(m_currentIndex - 1);
 
         // Use the initialFullRange (which is 60 seconds in this demo) if this is sufficient.
         double duration = endDate - startDate;
