@@ -16,13 +16,17 @@ SOURCES += main.cpp \
     src/realtimedemo.cpp \
     src/realtimedemozoomscroll.cpp \
     src/realtimezoomscroll.cpp \
-    src/realtimetrack.cpp
+    src/realtimetrack.cpp \
+    src/QtChartWindow.cpp
 
 HEADERS  += src/qchartviewer.h \
     src/realtimedemo.h \
     src/realtimedemozoomscroll.h \
     src/realtimezoomscroll.h \
-    src/realtimetrack.h
+    src/realtimetrack.h \
+    src/QtChartWindow.h
+
+FORMS  += src/QtChartWindow.ui
 
 RESOURCES += realtimedemo.qrc
 
