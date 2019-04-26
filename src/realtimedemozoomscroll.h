@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QLabel>
 #include <QScrollBar>
+#include <QDebug>
 
 #include "qchartviewer.h"
 
@@ -48,6 +49,7 @@ private slots:
     void trackLineLabel(XYChart *c, int mouseX);
     void onHScrollBarChanged(int value);
     void updateControls(QChartViewer *viewer);
+    void onMouseUsageChanged(int mouseUsage);
 };
 
 #endif // REALTIMEDEMO_H

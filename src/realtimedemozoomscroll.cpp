@@ -20,7 +20,7 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
     // Set up the GUI
     //
 
-    setFixedSize(740, 285);
+    setFixedSize(772, 380);
     setWindowTitle("Simple Realtime Chart");
 
     // The frame on the left side
@@ -28,15 +28,33 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
     frame->setGeometry(4, 4, 120, 277);
     frame->setFrameShape(QFrame::StyledPanel);
 
+    // Pointer push button
+    QPushButton *pointerPB = new QPushButton(QIcon(":/pointer.png"), "Pointer", frame);
+    pointerPB->setGeometry(4, 8, 112, 28);
+    pointerPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
+    pointerPB->setCheckable(true);
+
+    // Zoom In push button
+    QPushButton *zoomInPB = new QPushButton(QIcon(":/zoomin.png"), "Zoom In", frame);
+    zoomInPB->setGeometry(4, 36, 112, 28);
+    zoomInPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
+    zoomInPB->setCheckable(true);
+
+    // Zoom Out push button
+    QPushButton *zoomOutPB = new QPushButton(QIcon(":/zoomout.png"), "Zoom Out", frame);
+    zoomOutPB->setGeometry(4, 64, 112, 28);
+    zoomOutPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
+    zoomOutPB->setCheckable(true);
+
     // Run push button
     QPushButton *runPB = new QPushButton(QIcon(":/play.png"), "Run", frame);
-    runPB->setGeometry(4, 8, 112, 28);
+    runPB->setGeometry(4, 92, 112, 28);
     runPB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     runPB->setCheckable(true);
 
     // Freeze push button
     QPushButton *freezePB = new QPushButton(QIcon(":/pause.png"), "Freeze", frame);
-    freezePB->setGeometry(4, 36, 112, 28);
+    freezePB->setGeometry(4, 120, 112, 28);
     freezePB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     freezePB->setCheckable(true);
 
@@ -45,6 +63,12 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
     runFreezeControl->addButton(runPB, 1);
     runFreezeControl->addButton(freezePB, 0);
     connect(runFreezeControl, SIGNAL(buttonPressed(int)), SLOT(onRunFreezeChanged(int)));
+
+    QButtonGroup *mouseUsage = new QButtonGroup(frame);
+    mouseUsage->addButton(pointerPB, Chart::MouseUsageScroll);
+    mouseUsage->addButton(zoomInPB, Chart::MouseUsageZoomIn);
+    mouseUsage->addButton(zoomOutPB, Chart::MouseUsageZoomOut);
+    connect(mouseUsage, SIGNAL(buttonPressed(int)), SLOT(onMouseUsageChanged(int)));
 
     // Update Period drop down list box
     (new QLabel("Update Period (ms)", frame))->setGeometry(6, 80, 108, 16);
@@ -75,11 +99,10 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
 
     // Chart Viewer
     m_ChartViewer = new QChartViewer(this);
-    m_ChartViewer->setGeometry(132, 8, 600, 270);
-    m_ChartViewer->setMouseUsage(Chart::MouseUsageScroll);
+    m_ChartViewer->setGeometry(132, 8, 640, 350);
+    //m_ChartViewer->setMouseUsage(Chart::MouseUsageScroll);
     connect(m_ChartViewer, SIGNAL(viewPortChanged()), SLOT(onViewPortChanged()));
-    connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)),
-        SLOT(onMouseMovePlotArea(QMouseEvent*)));
+    connect(m_ChartViewer, SIGNAL(mouseMovePlotArea(QMouseEvent*)), SLOT(onMouseMovePlotArea(QMouseEvent*)));
 
     // Horizontal scroll bar
     m_HScrollBar = new QScrollBar(Qt::Horizontal, this);
@@ -97,6 +120,9 @@ RealtimeDemoZoomScroll::RealtimeDemoZoomScroll(QWidget *parent) :
     // Set m_nextDataTime to the current time. It is used by the real time random number
     // generator so it knows what timestamp should be used for the next data point.
     m_nextDataTime = QDateTime::currentDateTime();
+
+    // Initially set the mouse to drag to scroll mode.
+    pointerPB->click();
 
     // Set up the data acquisition mechanism. In this demo, we just use a timer to get a
     // sample every 250ms.
@@ -118,8 +144,18 @@ RealtimeDemoZoomScroll::~RealtimeDemoZoomScroll()
     delete m_ChartViewer->getChart();
 }
 
+//
+// The Pointer, Zoom In or Zoom out button is pressed
+//
+void RealtimeDemoZoomScroll::onMouseUsageChanged(int mouseUsage)
+{
+    m_ChartViewer->setMouseUsage(mouseUsage);
+}
+
 void RealtimeDemoZoomScroll::onViewPortChanged()
 {
+    qDebug()<<"onViewPortChanged";
+
     // In addition to updating the chart, we may also need to update other controls that
     // changes based on the view port.
     updateControls(m_ChartViewer);
@@ -147,14 +183,19 @@ void RealtimeDemoZoomScroll::updateControls(QChartViewer *viewer)
 
 void RealtimeDemoZoomScroll::onMouseMovePlotArea(QMouseEvent *)
 {
-    //trackLineLabel((XYChart *)m_ChartViewer->getChart(), m_ChartViewer->getPlotAreaMouseX());
-    //m_ChartViewer->updateDisplay();
+    trackLineLabel((XYChart *)m_ChartViewer->getChart(), m_ChartViewer->getPlotAreaMouseX());
+    m_ChartViewer->updateDisplay();
 }
 
 void RealtimeDemoZoomScroll::onHScrollBarChanged(int value)
 {
+    qDebug()<<"onHScrollBarChanged";
+    qDebug()<<m_ChartViewer->isInViewPortChangedEvent();
+
     if (!m_ChartViewer->isInViewPortChangedEvent())
     {
+        qDebug()<<"isInViewPortChangedEvent";
+
         // Set the view port based on the scroll bar
         int scrollBarLen = m_HScrollBar->maximum() + m_HScrollBar->pageStep();
         m_ChartViewer->setViewPortLeft(value / (double)scrollBarLen);
@@ -196,10 +237,14 @@ void RealtimeDemoZoomScroll::getData()
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
         // Shift the values into the arrays
-        shiftData(m_dataSeriesA, sampleSizeDemo, dataA);
+        /*shiftData(m_dataSeriesA, sampleSizeDemo, dataA);
         shiftData(m_dataSeriesB, sampleSizeDemo, dataB);
         shiftData(m_dataSeriesC, sampleSizeDemo, dataC);
-        shiftData(m_timeStamps, sampleSizeDemo, currentTime);
+        shiftData(m_timeStamps, sampleSizeDemo, currentTime);*/
+        m_timeStamps[m_currentIndex] = currentTime;
+        m_dataSeriesA[m_currentIndex] = dataA;
+        m_dataSeriesB[m_currentIndex] = dataB;
+        m_dataSeriesC[m_currentIndex] = dataC;
 
         ++m_currentIndex;
 
@@ -211,9 +256,9 @@ void RealtimeDemoZoomScroll::getData()
     // We provide some visual feedback to the latest numbers generated, so you can see the
     // data being generated.
     //
-    m_ValueA->setText(QString::number(m_dataSeriesA[sampleSizeDemo - 1], 'f', 2));
-    m_ValueB->setText(QString::number(m_dataSeriesB[sampleSizeDemo - 1], 'f', 2));
-    m_ValueC->setText(QString::number(m_dataSeriesC[sampleSizeDemo - 1], 'f', 2));
+    m_ValueA->setText(QString::number(m_dataSeriesA[m_currentIndex - 1], 'f', 2));
+    m_ValueB->setText(QString::number(m_dataSeriesB[m_currentIndex - 1], 'f', 2));
+    m_ValueC->setText(QString::number(m_dataSeriesC[m_currentIndex - 1], 'f', 2));
 }
 
 //
@@ -268,6 +313,8 @@ void RealtimeDemoZoomScroll::updateChart()
         if (m_ChartViewer->getViewPortLeft() + m_ChartViewer->getViewPortWidth() < 0.999)
             updateType = Chart::KeepVisibleRange;
         bool scaleHasChanged = m_ChartViewer->updateFullRangeH("x", startDate, endDate, updateType);
+
+        qDebug()<<"updateChart";
 
         // Set the zoom in limit as a ratio to the full range
         m_ChartViewer->setZoomInWidthLimit(10 / (m_ChartViewer->getValueAtViewPort("x", 1) -
@@ -373,9 +420,8 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
 
 
     // Get the start date and end date that are visible on the chart.
-    double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
-    double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() +
-        viewer->getViewPortWidth());
+    //double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
+    //double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() + viewer->getViewPortWidth());
 
     //
     // At this stage, we have extracted the visible data. We can use those data to plot the chart.
@@ -386,7 +432,7 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
     //================================================================================
 
     // Create an XYChart object of size 640 x 350 pixels
-    XYChart *c = new XYChart(600, 270, 0xf4f4f4, 0x000000, 1);
+    XYChart *c = new XYChart(640, 350);
 
     // Set the plotarea at (55, 50) with width 80 pixels less than chart width, and height 80 pixels
     // less than chart height. Use a vertical gradient from light blue (f0f6ff) to sky blue (a0c0ff)
@@ -435,14 +481,41 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
     layer->setLineWidth(2);
     layer->setFastLineMode();
 
-    char buffer[1024];
+    //char buffer[1024];
 
-    sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
+    //sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
+
+    // Get the start date and end date that are visible on the chart.
+    double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
+    double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() + viewer->getViewPortWidth());
+
+    // Extract the part of the data arrays that are visible.
+    DoubleArray viewPortTimeStamps;
+    DoubleArray viewPortDataSeriesA;
+    DoubleArray viewPortDataSeriesB;
+    DoubleArray viewPortDataSeriesC;
+
+    if (m_currentIndex > 0)
+    {
+        // Get the array indexes that corresponds to the visible start and end dates
+        int startIndex = (int)floor(Chart::bSearch(DoubleArray(m_timeStamps, m_currentIndex), viewPortStartDate));
+        int endIndex = (int)ceil(Chart::bSearch(DoubleArray(m_timeStamps, m_currentIndex), viewPortEndDate));
+        int noOfPoints = endIndex - startIndex + 1;
+
+        // Extract the visible data
+        viewPortTimeStamps = DoubleArray(m_timeStamps+ startIndex, noOfPoints);
+        viewPortDataSeriesA = DoubleArray(m_dataSeriesA + startIndex, noOfPoints);
+        viewPortDataSeriesB = DoubleArray(m_dataSeriesB + startIndex, noOfPoints);
+        viewPortDataSeriesC = DoubleArray(m_dataSeriesC + startIndex, noOfPoints);
+    }
+
 
     // Now we add the 3 data series to a line layer, using the color red (ff0000), green (00cc00)
     // and blue (0000ff)
-    layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
-    layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
+    //layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
+    //layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
+    layer->setXData(viewPortTimeStamps);
+    layer->addDataSet(viewPortDataSeriesA, 0xff0000, "Alpha");
 
     //================================================================================
     // Configure axis scale and labelling
@@ -451,8 +524,11 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
     double lastTime = m_timeStamps[sampleSizeDemo - 1];
     // Set the x-axis as a date/time axis with the scale according to the view port x range.
     if (m_currentIndex > 0)
-        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
+    {
+        //c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
         //c->xAxis()->setDateScale(viewPortStartDate, viewPortEndDate);
+        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
+    }
 
     // For the automatic axis labels, set the minimum spacing to 75/30 pixels for the x/y axis.
     c->xAxis()->setTickDensity(75);
@@ -491,11 +567,14 @@ void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
     {
         trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() :
             viewer->getPlotAreaMouseX());
+
+        qDebug()<<"isInMouseMoveEvent";
     }
 
     // Set the chart image to the QChartViewer
     delete viewer->getChart();
     viewer->setChart(c);
+    //delete c;
 }
 
 void RealtimeDemoZoomScroll::trackLineLabel(XYChart *c, int mouseX)
