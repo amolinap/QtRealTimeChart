@@ -220,31 +220,25 @@ static void shiftData(double *data, int len, double newValue)
 //
 void RealtimeDemoZoomScroll::getData()
 {
-    // The current time
     QDateTime now = QDateTime::currentDateTime();
 
-    // This is our formula for the random number generator
     do
     {
-        // We need the currentTime in millisecond resolution
-        double currentTime = Chart::chartTime2(m_nextDataTime.toTime_t())
-                             + m_nextDataTime.time().msec() / 1000.0;
+        double currentTime = Chart::chartTime2(m_nextDataTime.toTime_t()) + m_nextDataTime.time().msec() / 1000.0;
 
-        // Get a data sample
         double p = currentTime * 4;
         double dataA = 20 + cos(p * 129241) * 10 + 1 / (cos(p) * cos(p) + 0.01);
         double dataB = 150 + 100 * sin(p / 27.7) * sin(p / 10.1);
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
-        // Shift the values into the arrays
-        /*shiftData(m_dataSeriesA, sampleSizeDemo, dataA);
+        shiftData(m_dataSeriesA, sampleSizeDemo, dataA);
         shiftData(m_dataSeriesB, sampleSizeDemo, dataB);
         shiftData(m_dataSeriesC, sampleSizeDemo, dataC);
-        shiftData(m_timeStamps, sampleSizeDemo, currentTime);*/
-        m_timeStamps[m_currentIndex] = currentTime;
+        shiftData(m_timeStamps, sampleSizeDemo, currentTime);
+        /*m_timeStamps[m_currentIndex] = currentTime;
         m_dataSeriesA[m_currentIndex] = dataA;
         m_dataSeriesB[m_currentIndex] = dataB;
-        m_dataSeriesC[m_currentIndex] = dataC;
+        m_dataSeriesC[m_currentIndex] = dataC;*/
 
         ++m_currentIndex;
 
@@ -252,13 +246,71 @@ void RealtimeDemoZoomScroll::getData()
     }
     while (m_nextDataTime < now);
 
-    //
-    // We provide some visual feedback to the latest numbers generated, so you can see the
-    // data being generated.
-    //
-    m_ValueA->setText(QString::number(m_dataSeriesA[m_currentIndex - 1], 'f', 2));
-    m_ValueB->setText(QString::number(m_dataSeriesB[m_currentIndex - 1], 'f', 2));
-    m_ValueC->setText(QString::number(m_dataSeriesC[m_currentIndex - 1], 'f', 2));
+    m_ValueA->setText(QString::number(m_dataSeriesA[sampleSizeDemo - 1], 'f', 2));
+    m_ValueB->setText(QString::number(m_dataSeriesB[sampleSizeDemo - 1], 'f', 2));
+    m_ValueC->setText(QString::number(m_dataSeriesC[sampleSizeDemo - 1], 'f', 2));
+}
+
+//
+// Draw chart
+//
+void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
+{
+    XYChart *c = new XYChart(640, 350);
+
+    c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
+    c->setClipping();
+    c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15)->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
+
+    LegendBox *b = c->addLegend(55, 25, false, "arialbd.ttf", 10);
+    b->setBackground(Chart::Transparent);
+    b->setLineStyleKey();
+
+    c->xAxis()->setColors(Chart::Transparent);
+    c->yAxis()->setColors(Chart::Transparent);
+    c->xAxis()->setLabelStyle("arial.ttf", 10);
+    c->yAxis()->setLabelStyle("arial.ttf", 10);
+    c->yAxis()->setTickLength(0);
+    c->yAxis()->setTitle("Ionic Temperature (C)", "arialbd.ttf", 12);
+
+    LineLayer *layer = c->addLineLayer();
+    layer->setLineWidth(2);
+    layer->setFastLineMode();
+
+    double lastTime = m_timeStamps[sampleSizeDemo - 1];
+
+    if (lastTime != Chart::NoValue)
+    {
+        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
+
+        layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
+
+        char buffer[1024];
+        sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
+        layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
+    }
+
+    c->xAxis()->setTickDensity(75);
+    c->yAxis()->setTickDensity(30);
+    c->xAxis()->setFormatCondition("align", 3600);
+    c->xAxis()->setMultiFormat(Chart::StartOfDayFilter(), "<*font=bold*>{value|hh:nn<*br*>mmm dd}", Chart::AllPassFilter(), "{value|hh:nn}");
+    c->xAxis()->setFormatCondition("align", 60);
+    c->xAxis()->setLabelFormat("{value|hh:nn}");
+    c->xAxis()->setFormatCondition("else");
+    c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
+    c->xAxis()->setMinTickInc(1);
+
+    if (!viewer->isInMouseMoveEvent())
+    {
+        trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() :
+                                                      viewer->getPlotAreaMouseX());
+
+        qDebug()<<"isInMouseMoveEvent";
+    }
+
+    delete viewer->getChart();
+
+    viewer->setChart(c);
 }
 
 //
@@ -318,263 +370,13 @@ void RealtimeDemoZoomScroll::updateChart()
 
         // Set the zoom in limit as a ratio to the full range
         m_ChartViewer->setZoomInWidthLimit(10 / (m_ChartViewer->getValueAtViewPort("x", 1) -
-            m_ChartViewer->getValueAtViewPort("x", 0)));
+                                                 m_ChartViewer->getValueAtViewPort("x", 0)));
 
         // Trigger the viewPortChanged event to update the display if the axis scale has changed
         // or if new data are added to the existing axis scale.
         if (scaleHasChanged || (duration < 60))
             m_ChartViewer->updateViewPort(true, false);
     }
-}
-
-//
-// Draw chart
-//
-void RealtimeDemoZoomScroll::drawChart(QChartViewer *viewer)
-{
-    /*
-    // Create an XYChart object 600 x 270 pixels in size, with light grey (f4f4f4)
-    // background, black (000000) border, 1 pixel raised effect, and with a rounded frame.
-    XYChart *c = new XYChart(600, 270, 0xf4f4f4, 0x000000, 1);
-    QColor bgColor = palette().color(backgroundRole()).rgb();
-    c->setRoundedFrame((bgColor.red() << 16) + (bgColor.green() << 8) + bgColor.blue());
-
-    // Set the plotarea at (55, 62) and of size 520 x 175 pixels. Use white (ffffff)
-    // background. Enable both horizontal and vertical grids by setting their colors to
-    // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
-    c->setPlotArea(55, 62, 520, 175, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
-    c->setClipping();
-
-    // Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
-    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
-    c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
-        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
-
-    // Add a legend box at the top of the plot area with 9pts Arial Bold font. We set the
-    // legend box to the same width as the plot area and use grid layout (as opposed to
-    // flow or top/down layout). This distributes the 3 legend icons evenly on top of the
-    // plot area.
-    LegendBox *b = c->addLegend2(55, 33, 3, "arialbd.ttf", 9);
-    b->setBackground(Chart::Transparent, Chart::Transparent);
-    b->setWidth(520);
-
-    // Configure the y-axis with a 10pts Arial Bold axis title
-    c->yAxis()->setTitle("Intensity (V/m)", "arialbd.ttf", 10);
-
-    // Configure the x-axis to auto-scale with at least 75 pixels between major tick and
-    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
-    c->xAxis()->setTickDensity(75, 15);
-
-    // Set the axes width to 2 pixels
-    c->xAxis()->setWidth(2);
-    c->yAxis()->setWidth(2);
-
-    // Now we add the data to the chart.
-    double lastTime = m_timeStamps[sampleSizeDemo - 1];
-    if (lastTime != Chart::NoValue)
-    {
-        // Set up the x-axis to show the time range in the data buffer
-        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
-
-        // Set the x-axis label format
-        c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
-
-        // Create a line layer to plot the lines
-        LineLayer *layer = c->addLineLayer();
-
-        // The x-coordinates are the timeStamps.
-        layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
-
-        // The 3 data series are used to draw 3 lines. Here we put the latest data values
-        // as part of the data set name, so you can see them updated in the legend box.
-        char buffer[1024];
-
-        sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
-        layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
-
-        sprintf(buffer, "Hardware: <*bgColor=CCFFCC*> %.2f ", m_dataSeriesB[sampleSizeDemo - 1]);
-        layer->addDataSet(DoubleArray(m_dataSeriesB, sampleSizeDemo), 0x00cc00, buffer);
-
-        sprintf(buffer, "Services: <*bgColor=CCCCFF*> %.2f ", m_dataSeriesC[sampleSizeDemo - 1]);
-        layer->addDataSet(DoubleArray(m_dataSeriesC, sampleSizeDemo), 0x0000ff, buffer);
-    }
-
-    //================================================================================
-    // Output the chart
-    //================================================================================
-
-    // We need to update the track line too. If the mouse is moving on the chart (eg. if
-    // the user drags the mouse on the chart to scroll it), the track line will be updated
-    // in the MouseMovePlotArea event. Otherwise, we need to update the track line here.
-    if (!viewer->isInMouseMoveEvent())
-    {
-        trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() :
-            viewer->getPlotAreaMouseX());
-    }
-
-    // Set the chart image to the WinChartViewer
-    delete viewer->getChart();
-    viewer->setChart(c);
-    delete c;
-    */
-
-
-    // Get the start date and end date that are visible on the chart.
-    //double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
-    //double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() + viewer->getViewPortWidth());
-
-    //
-    // At this stage, we have extracted the visible data. We can use those data to plot the chart.
-    //
-
-    //================================================================================
-    // Configure overall chart appearance.
-    //================================================================================
-
-    // Create an XYChart object of size 640 x 350 pixels
-    XYChart *c = new XYChart(640, 350);
-
-    // Set the plotarea at (55, 50) with width 80 pixels less than chart width, and height 80 pixels
-    // less than chart height. Use a vertical gradient from light blue (f0f6ff) to sky blue (a0c0ff)
-    // as background. Set border to transparent and grid lines to white (ffffff).
-    c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0,
-        c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
-
-    // As the data can lie outside the plotarea in a zoomed chart, we need enable clipping.
-    c->setClipping();
-    //c->yAxis()->setReverse();
-
-    // Add a title to the chart using 18pt Arial font
-    //c->addTitle("    Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
-    c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
-        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
-
-    // Add a legend box at (55, 25) using horizontal layout. Use 10pt Arial Bold as font. Set the
-    // background and border color to transparent and use line style legend key.
-    LegendBox *b = c->addLegend(55, 25, false, "arialbd.ttf", 10);
-    b->setBackground(Chart::Transparent);
-    b->setLineStyleKey();
-
-    // Set the x and y axis stems to transparent and the label font to 10pt Arial
-    c->xAxis()->setColors(Chart::Transparent);
-    c->yAxis()->setColors(Chart::Transparent);
-    c->xAxis()->setLabelStyle("arial.ttf", 10);
-    c->yAxis()->setLabelStyle("arial.ttf", 10);
-
-    // Set the y-axis tick length to 0 to disable the tick and put the labels closer to the axis.
-    c->yAxis()->setTickLength(0);
-
-    // Add axis title using 12pt Arial Bold Italic font
-    c->yAxis()->setTitle("Ionic Temperature (C)", "arialbd.ttf", 12);
-
-    //================================================================================
-    // Add data to chart
-    //================================================================================
-
-    //
-    // In this example, we represent the data by lines. You may modify the code below to use other
-    // representations (areas, scatter plot, etc).
-    //
-
-    // Add a line layer for the lines, using a line width of 2 pixels
-    LineLayer *layer = c->addLineLayer();
-    layer->setLineWidth(2);
-    layer->setFastLineMode();
-
-    //char buffer[1024];
-
-    //sprintf(buffer, "Software: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSizeDemo - 1]);
-
-    // Get the start date and end date that are visible on the chart.
-    double viewPortStartDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft());
-    double viewPortEndDate = viewer->getValueAtViewPort("x", viewer->getViewPortLeft() + viewer->getViewPortWidth());
-
-    // Extract the part of the data arrays that are visible.
-    DoubleArray viewPortTimeStamps;
-    DoubleArray viewPortDataSeriesA;
-    DoubleArray viewPortDataSeriesB;
-    DoubleArray viewPortDataSeriesC;
-
-    if (m_currentIndex > 0)
-    {
-        // Get the array indexes that corresponds to the visible start and end dates
-        int startIndex = (int)floor(Chart::bSearch(DoubleArray(m_timeStamps, m_currentIndex), viewPortStartDate));
-        int endIndex = (int)ceil(Chart::bSearch(DoubleArray(m_timeStamps, m_currentIndex), viewPortEndDate));
-        int noOfPoints = endIndex - startIndex + 1;
-
-        // Extract the visible data
-        viewPortTimeStamps = DoubleArray(m_timeStamps+ startIndex, noOfPoints);
-        viewPortDataSeriesA = DoubleArray(m_dataSeriesA + startIndex, noOfPoints);
-        viewPortDataSeriesB = DoubleArray(m_dataSeriesB + startIndex, noOfPoints);
-        viewPortDataSeriesC = DoubleArray(m_dataSeriesC + startIndex, noOfPoints);
-    }
-
-
-    // Now we add the 3 data series to a line layer, using the color red (ff0000), green (00cc00)
-    // and blue (0000ff)
-    //layer->setXData(DoubleArray(m_timeStamps, sampleSizeDemo));
-    //layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSizeDemo), 0xff0000, buffer);
-    layer->setXData(viewPortTimeStamps);
-    layer->addDataSet(viewPortDataSeriesA, 0xff0000, "Alpha");
-
-    //================================================================================
-    // Configure axis scale and labelling
-    //================================================================================
-
-    double lastTime = m_timeStamps[sampleSizeDemo - 1];
-    // Set the x-axis as a date/time axis with the scale according to the view port x range.
-    if (m_currentIndex > 0)
-    {
-        //c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
-        //c->xAxis()->setDateScale(viewPortStartDate, viewPortEndDate);
-        c->xAxis()->setDateScale(lastTime - DataInterval * sampleSizeDemo / 1000, lastTime);
-    }
-
-    // For the automatic axis labels, set the minimum spacing to 75/30 pixels for the x/y axis.
-    c->xAxis()->setTickDensity(75);
-    c->yAxis()->setTickDensity(30);
-
-    //
-    // In this demo, the time range can be from many hours to a few seconds. We can need to define
-    // the date/time format the various cases.
-    //
-
-    // If all ticks are hour algined, we use "hh:nn<*br*>mmm dd" in bold font as the first label of
-    // the Day, and "hh:nn" for other labels.
-    c->xAxis()->setFormatCondition("align", 3600);
-    c->xAxis()->setMultiFormat(Chart::StartOfDayFilter(), "<*font=bold*>{value|hh:nn<*br*>mmm dd}",
-        Chart::AllPassFilter(), "{value|hh:nn}");
-
-    // If all ticks are minute algined, then we use "hh:nn" as the label format.
-    c->xAxis()->setFormatCondition("align", 60);
-    c->xAxis()->setLabelFormat("{value|hh:nn}");
-
-    // If all other cases, we use "hh:nn:ss" as the label format.
-    c->xAxis()->setFormatCondition("else");
-    c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
-
-    // We make sure the tick increment must be at least 1 second.
-    c->xAxis()->setMinTickInc(1);
-
-    //================================================================================
-    // Output the chart
-    //================================================================================
-
-    // We need to update the track line too. If the mouse is moving on the chart (eg. if
-    // the user drags the mouse on the chart to scroll it), the track line will be updated
-    // in the MouseMovePlotArea event. Otherwise, we need to update the track line here.
-    if (!viewer->isInMouseMoveEvent())
-    {
-        trackLineLabel(c, (0 == viewer->getChart()) ? c->getPlotArea()->getRightX() :
-            viewer->getPlotAreaMouseX());
-
-        qDebug()<<"isInMouseMoveEvent";
-    }
-
-    // Set the chart image to the QChartViewer
-    delete viewer->getChart();
-    viewer->setChart(c);
-    //delete c;
 }
 
 void RealtimeDemoZoomScroll::trackLineLabel(XYChart *c, int mouseX)
@@ -597,7 +399,7 @@ void RealtimeDemoZoomScroll::trackLineLabel(XYChart *c, int mouseX)
     // Draw a label on the x-axis to show the track line position.
     ostringstream xlabel;
     xlabel << "<*font,bgColor=000000*> " << c->xAxis()->getFormattedLabel(xValue, "hh:nn:ss.ff")
-        << " <*/font*>";
+           << " <*/font*>";
     TTFText *t = d->text(xlabel.str().c_str(), "arialbd.ttf", 10);
 
     // Restrict the x-pixel position of the label to make sure it stays inside the chart image.
@@ -624,13 +426,13 @@ void RealtimeDemoZoomScroll::trackLineLabel(XYChart *c, int mouseX)
 
             // Draw a track dot with a label next to it for visible data points in the plot area
             if ((yCoor >= plotArea->getTopY()) && (yCoor <= plotArea->getBottomY()) && (color !=
-                Chart::Transparent) && dataSetName && *dataSetName)
+                                                                                        Chart::Transparent) && dataSetName && *dataSetName)
             {
                 d->circle(xCoor, yCoor, 4, 4, color, color);
 
                 ostringstream label;
                 label << "<*font,bgColor=" << hex << color << "*> "
-                    << c->formatValue(dataSet->getValue(xIndex), "{value|P4}") << " <*font*>";
+                      << c->formatValue(dataSet->getValue(xIndex), "{value|P4}") << " <*font*>";
                 t = d->text(label.str().c_str(), "arialbd.ttf", 10);
 
                 // Draw the label on the right side of the dot if the mouse is on the left side the
