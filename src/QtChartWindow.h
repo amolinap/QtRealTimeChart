@@ -34,6 +34,18 @@ public:
     QtChartWindow(QWidget* parent = 0);
     ~QtChartWindow();
 
+    enum DataType
+        {
+            None = 0,
+
+            RAW_1 = 1,
+            RAW_2 = 2,
+            RAW_3 = 3,
+            RAW_4 = 4,
+            RAW_5 = 5,
+            RAW_6 = 6
+        };
+
 protected:
     void resizeEvent(QResizeEvent *event);
 
@@ -64,7 +76,8 @@ private:
     QGridLayout* curvesWidgetLayout;      ///< The layout for the curvesWidget QWidget
     QCheckBox* selectAllCheckBox;
     QMap<QString, QLabel*>* curveLabels;  ///< References to the curve labels
-    QMap<QString, int> intData;           ///< Current values for integer-valued curves
+    QMap<QString, double> intData;           ///< Current values for integer-valued curves
+    QMap<DataType, int> *valuesMap;
 
 private slots:
     void onMouseUsageChanged(int mouseUsage);       // Pointer/zoom in/zoom out button clicked
@@ -78,6 +91,9 @@ private slots:
 
     void addItem(const QString name);
     void refresh();
+    void valueChanged(const QString type, DataType unit, double parameterValue, quint64 usec);
+    void appendData(int uasId, const QString& curve, DataType unit, int value, quint64 usec);
+    void appendData(int uasId, const QString& curve, DataType unit, double value, quint64 usec);
 
 };
 

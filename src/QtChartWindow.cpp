@@ -41,6 +41,7 @@ QtChartWindow::QtChartWindow(QWidget* parent) :
 
     m_ChartUpdateTimer->start();
 
+    valuesMap = new QMap<DataType, int>();
     curveLabels = new QMap<QString, QLabel*>();
 
     curvesWidget = new QWidget(ui->curveListWidget);
@@ -84,44 +85,6 @@ void QtChartWindow::resizeEvent(QResizeEvent *event)
 {
     widthPlot = ui->gbChartPlot->width() - 20;
     heightPlot = ui->gbChartPlot->height() - 70;
-}
-
-void QtChartWindow::addItem(const QString name)
-{
-    QLabel* label;
-    QLabel* value;
-
-    int labelRow = curvesWidgetLayout->rowCount();
-
-    selectAllCheckBox = new QCheckBox("", this);
-    connect(selectAllCheckBox, SIGNAL(clicked(bool)), this, SLOT(selectAllCurves(bool)));
-    curvesWidgetLayout->addWidget(selectAllCheckBox, labelRow, 0, 1, 2);
-
-    label = new QLabel(this);
-    label->setText(name);
-    curvesWidgetLayout->addWidget(label, labelRow, 2);
-
-    value = new QLabel(this);
-    value->setText(tr("Value"));
-    curvesWidgetLayout->addWidget(value, labelRow, 3);
-
-    curveLabels->insert(name, value);
-}
-
-void QtChartWindow::refresh()
-{
-    QString str;
-    QMap<QString, QLabel*>::iterator i;
-
-    for (i = curveLabels->begin(); i != curveLabels->end(); ++i)
-    {
-        if (intData.contains(i.key()))
-        {
-            str.sprintf("% 11i", intData.value(i.key()));
-
-            i.value()->setText(str);
-        }
-    }
 }
 
 void QtChartWindow::onMouseUsageChanged(int mouseUsage)
@@ -220,25 +183,128 @@ void QtChartWindow::updateControls(QChartViewer *viewer)
     m_HScrollBar->setValue((int)(0.5 + viewer->getViewPortLeft() * scrollBarLen));
 }
 
+void QtChartWindow::appendData(int uasId, const QString& curve, DataType unit, double value, quint64 usec)
+{
+    qDebug() << curve;
+    qDebug() << unit;
+    qDebug() << value;
+    qDebug() << usec;
+
+    valueChanged(curve, unit, value, usec);
+}
+
+void QtChartWindow::appendData(int uasId, const QString& curve, DataType unit, int value, quint64 usec)
+{
+    qDebug() << curve;
+    qDebug() << unit;
+    qDebug() << value;
+    qDebug() << usec;
+
+    valueChanged(curve, unit, value, usec);
+}
+
+void QtChartWindow::valueChanged(const QString type, DataType unit, double parameterValue, quint64 usec)
+{
+    int row;
+
+    if (!valuesMap->contains(unit))
+    {
+        row = valuesMap->count();
+        valuesMap->insert(unit, row);
+        valuesList.append(parameterValue);
+
+        addItem(type);
+        intData.insert(type, 0);
+
+        qDebug()<<"addItem: "<<type;
+    }
+    else
+    {
+        row = valuesMap->value(unit);
+        valuesList[row] = parameterValue;
+
+        intData.insert(type, parameterValue);
+    }
+
+    dataSeries[0].append(usec);
+    dataSeries[RAW_1].append(valuesList[valuesMap->value(RAW_1)]);
+    dataSeries[RAW_2].append(valuesList[valuesMap->value(RAW_2)]);
+    dataSeries[RAW_3].append(valuesList[valuesMap->value(RAW_3)]);
+
+    ++m_currentIndex;
+
+    refresh();
+
+    qDebug()<<"parameterValue: "<<parameterValue;
+}
+
+void QtChartWindow::addItem(const QString name)
+{
+    QLabel* label;
+    QLabel* value;
+
+    int labelRow = curvesWidgetLayout->rowCount();
+
+    selectAllCheckBox = new QCheckBox("", this);
+    connect(selectAllCheckBox, SIGNAL(clicked(bool)), this, SLOT(selectAllCurves(bool)));
+    curvesWidgetLayout->addWidget(selectAllCheckBox, labelRow, 0, 1, 2);
+
+    label = new QLabel(this);
+    label->setText(name);
+    curvesWidgetLayout->addWidget(label, labelRow, 2);
+
+    value = new QLabel(this);
+    value->setText(tr("Value"));
+    curvesWidgetLayout->addWidget(value, labelRow, 3);
+
+    curveLabels->insert(name, value);
+}
+
+void QtChartWindow::refresh()
+{
+    QString str;
+    QMap<QString, QLabel*>::iterator i;
+
+    qDebug()<<"curveLabels: "<<curveLabels->count();
+
+    for (i = curveLabels->begin(); i != curveLabels->end(); ++i)
+    {
+        qDebug()<<"i.key(): "<<i.key();
+
+        if (intData.contains(i.key()))
+        {
+            str.sprintf("% 11f", intData.value(i.key()));
+
+            i.value()->setText(str);
+
+            qDebug()<<"valueChanged: "<<str;
+        }
+    }
+}
+
 void QtChartWindow::getData()
 {
     QDateTime now = QDateTime::currentDateTime();
 
     do
     {
-        double currentTime = Chart::chartTime2(m_nextDataTime.toTime_t()) + m_nextDataTime.time().msec() / 1000.0;
+        quint64 currentTime = Chart::chartTime2(m_nextDataTime.toTime_t()) + m_nextDataTime.time().msec() / 1000.0;
 
         double p = currentTime * 4;
         double dataA = 20 + cos(p * 129241) * 10 + 1 / (cos(p) * cos(p) + 0.01);
         double dataB = 150 + 100 * sin(p / 27.7) * sin(p / 10.1);
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
-        dataSeries[0].append(currentTime);
+        /*dataSeries[0].append(currentTime);
         dataSeries[1].append(dataA);
         dataSeries[2].append(dataB);
-        dataSeries[3].append(dataC);
+        dataSeries[3].append(dataC);*/
 
-        ++m_currentIndex;
+        valueChanged("RAW_1", RAW_1, dataA, currentTime);
+        valueChanged("RAW_2", RAW_2, dataB, currentTime);
+        valueChanged("RAW_3", RAW_3, dataC, currentTime);
+
+        //++m_currentIndex;
 
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
     }
@@ -360,8 +426,7 @@ void QtChartWindow::trackLineLabel(XYChart *c, int mouseX)
             int yCoor = c->getYCoor(dataSet->getPosition(xIndex), dataSet->getUseYAxis());
 
             // Draw a track dot with a label next to it for visible data points in the plot area
-            if ((yCoor >= plotArea->getTopY()) && (yCoor <= plotArea->getBottomY()) && (color !=
-                                                                                        Chart::Transparent) && dataSetName && *dataSetName)
+            if ((yCoor >= plotArea->getTopY()) && (yCoor <= plotArea->getBottomY()) && (color != Chart::Transparent) && dataSetName && *dataSetName)
             {
                 d->circle(xCoor, yCoor, 4, 4, color, color);
 
