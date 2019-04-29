@@ -20,7 +20,7 @@
 
 #include "qchartviewer.h"
 #include "chartdir.h"
-
+#include "QtConfiguration.h"
 
 namespace Ui
 {
@@ -33,6 +33,8 @@ class QtChartWindow : public QWidget {
 public:
     QtChartWindow(QWidget* parent = 0);
     ~QtChartWindow();
+
+    quint64 getUnixTime(quint64 time);
 
     enum DataType
         {
@@ -78,6 +80,7 @@ private:
     QMap<QString, QLabel*>* curveLabels;  ///< References to the curve labels
     QMap<QString, double> intData;           ///< Current values for integer-valued curves
     QMap<DataType, int> *valuesMap;
+    quint64 onboardTimeOffset;
 
 private slots:
     void onMouseUsageChanged(int mouseUsage);       // Pointer/zoom in/zoom out button clicked

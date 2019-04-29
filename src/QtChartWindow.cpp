@@ -7,7 +7,8 @@ static const int DataInterval = 250;
 
 QtChartWindow::QtChartWindow(QWidget* parent) :
     QWidget(parent),
-    ui(new Ui::QtChartWindow)
+    ui(new Ui::QtChartWindow),
+    onboardTimeOffset(0)
 {
     ui->setupUi(this);
 
@@ -288,23 +289,16 @@ void QtChartWindow::getData()
 
     do
     {
-        quint64 currentTime = Chart::chartTime2(m_nextDataTime.toTime_t()) + m_nextDataTime.time().msec() / 1000.0;
+        quint64 currentTime = getUnixTime(0)/1000;//Seconds
 
         double p = currentTime * 4;
         double dataA = 20 + cos(p * 129241) * 10 + 1 / (cos(p) * cos(p) + 0.01);
         double dataB = 150 + 100 * sin(p / 27.7) * sin(p / 10.1);
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
-        /*dataSeries[0].append(currentTime);
-        dataSeries[1].append(dataA);
-        dataSeries[2].append(dataB);
-        dataSeries[3].append(dataC);*/
-
         valueChanged("RAW_1", RAW_1, dataA, currentTime);
         valueChanged("RAW_2", RAW_2, dataB, currentTime);
         valueChanged("RAW_3", RAW_3, dataC, currentTime);
-
-        //++m_currentIndex;
 
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
     }
@@ -329,7 +323,7 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
 
         c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
         c->setClipping();
-        c->addTitle("    Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
+        c->addTitle("Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
 
         LegendBox *b = c->addLegend(55, 25, false, "arialbd.ttf", 10);
         b->setBackground(Chart::Transparent);
@@ -445,6 +439,48 @@ void QtChartWindow::trackLineLabel(XYChart *c, int mouseX)
                 t->destroy();
             }
         }
+    }
+}
+
+quint64 QtChartWindow::getUnixTime(quint64 time)
+{
+    if (time == 0)
+    {
+        return QtConfiguration::getGroundTimeNow();
+    }
+    // Check if time is smaller than 40 years,
+    // assuming no system without Unix timestamp
+    // runs longer than 40 years continuously without
+    // reboot. In worst case this will add/subtract the
+    // communication delay between GCS and MAV,
+    // it will never alter the timestamp in a safety
+    // critical way.
+    //
+    // Calculation:
+    // 40 years
+    // 365 days
+    // 24 hours
+    // 60 minutes
+    // 60 seconds
+    // 1000 milliseconds
+    // 1000 microseconds
+#ifndef _MSC_VER
+    else if (time < 1261440000000000LLU)
+#else
+        else if (time < 1261440000000000)
+#endif
+        {
+        if (onboardTimeOffset == 0)
+        {
+            onboardTimeOffset = QtConfiguration::getGroundTimeNow() - time/1000;
+        }
+        return time/1000 + onboardTimeOffset;
+    }
+    else
+    {
+        // Time is not zero and larger than 40 years -> has to be
+        // a Unix epoch timestamp. Do nothing.
+        return time/1000;
     }
 }
 

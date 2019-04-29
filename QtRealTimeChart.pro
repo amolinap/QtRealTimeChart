@@ -24,7 +24,8 @@ HEADERS  += src/qchartviewer.h \
     src/realtimedemozoomscroll.h \
     src/realtimezoomscroll.h \
     src/realtimetrack.h \
-    src/QtChartWindow.h
+    src/QtChartWindow.h \
+    src/QtConfiguration.h
 
 FORMS  += src/QtChartWindow.ui
 
