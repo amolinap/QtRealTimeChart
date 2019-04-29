@@ -13,6 +13,8 @@
 #include <QGridLayout>
 #include <QMap>
 #include <QVector>
+#include <QObject>
+#include <QMetaEnum>
 
 #include <math.h>
 #include <vector>
@@ -29,6 +31,7 @@ namespace Ui
 
 class QtChartWindow : public QWidget {
     Q_OBJECT
+    Q_ENUMS(DataType)
 
 public:
     QtChartWindow(QWidget* parent = 0);
@@ -38,7 +41,7 @@ public:
 
     enum DataType
         {
-            None = 0,
+            TIME = 0,
 
             RAW_1 = 1,
             RAW_2 = 2,

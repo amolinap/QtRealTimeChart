@@ -76,6 +76,10 @@ QtChartWindow::QtChartWindow(QWidget* parent) :
     value = new QLabel(this);
     value->setText(tr("Value"));
     curvesWidgetLayout->addWidget(value, labelRow, 3);
+
+    //QTimer *timerRefresh = new QTimer(this);
+    //timerRefresh->start(100);
+    //connect(timerRefresh, SIGNAL(timeout()), SLOT(refresh()));
 }
 
 QtChartWindow::~QtChartWindow()
@@ -216,8 +220,6 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
 
         addItem(type);
         intData.insert(type, 0);
-
-        qDebug()<<"addItem: "<<type;
     }
     else
     {
@@ -227,16 +229,26 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
         intData.insert(type, parameterValue);
     }
 
-    dataSeries[0].append(usec);
-    dataSeries[RAW_1].append(valuesList[valuesMap->value(RAW_1)]);
-    dataSeries[RAW_2].append(valuesList[valuesMap->value(RAW_2)]);
-    dataSeries[RAW_3].append(valuesList[valuesMap->value(RAW_3)]);
+    dataSeries[TIME].append(usec);
+    //dataSeries[RAW_1].append(valuesList[valuesMap->value(RAW_1)]);
+    //dataSeries[RAW_2].append(valuesList[valuesMap->value(RAW_2)]);
+    //dataSeries[RAW_3].append(valuesList[valuesMap->value(RAW_3)]);
+
+    foreach (const DataType type2, valuesMap->keys())
+    {
+        qDebug()<<"valuesMap->keys: "<<valuesMap->keys().count();
+
+        //if(type2 == unit)
+        {
+            dataSeries[unit].append(valuesList[valuesMap->value(unit)]);
+
+           //break;
+        }
+    }
 
     ++m_currentIndex;
 
     refresh();
-
-    qDebug()<<"parameterValue: "<<parameterValue;
 }
 
 void QtChartWindow::addItem(const QString name)
@@ -266,19 +278,13 @@ void QtChartWindow::refresh()
     QString str;
     QMap<QString, QLabel*>::iterator i;
 
-    qDebug()<<"curveLabels: "<<curveLabels->count();
-
     for (i = curveLabels->begin(); i != curveLabels->end(); ++i)
     {
-        qDebug()<<"i.key(): "<<i.key();
-
         if (intData.contains(i.key()))
         {
             str.sprintf("% 11f", intData.value(i.key()));
 
             i.value()->setText(str);
-
-            qDebug()<<"valueChanged: "<<str;
         }
     }
 }
@@ -300,11 +306,11 @@ void QtChartWindow::getData()
         valueChanged("RAW_2", RAW_2, dataB, currentTime);
         valueChanged("RAW_3", RAW_3, dataC, currentTime);
 
+        //++m_currentIndex;
+
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
     }
     while (m_nextDataTime < now);
-
-    qDebug()<<"Index: "<<m_currentIndex;
 }
 
 void QtChartWindow::drawChart(QChartViewer *viewer)
@@ -314,11 +320,6 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
 
     if (m_currentIndex > 0)
     {
-        int startIndex = (int)floor(Chart::bSearch(DoubleArray(dataSeries[0].constData(), m_currentIndex), viewPortStartDate));
-        int endIndex = (int)ceil(Chart::bSearch(DoubleArray(dataSeries[0].constData(), m_currentIndex), viewPortEndDate));
-        int noOfPoints = endIndex - startIndex + 1;
-
-
         XYChart *c = new XYChart(widthPlot, heightPlot);
 
         c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
@@ -340,10 +341,25 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
         layer->setLineWidth(2);
         layer->setFastLineMode();
 
-        layer->setXData(DoubleArray(dataSeries[0].constData() + startIndex, noOfPoints));
-        layer->addDataSet(DoubleArray(dataSeries[1].constData() + startIndex, noOfPoints), 0xff0000, "Alpha");
-        layer->addDataSet(DoubleArray(dataSeries[2].constData() + startIndex, noOfPoints), 0x00cc00, "Beta");
-        layer->addDataSet(DoubleArray(dataSeries[3].constData() + startIndex, noOfPoints), 0xffcc00, "Gama");
+        int startIndex = (int)floor(Chart::bSearch(DoubleArray(dataSeries[TIME].constData(), m_currentIndex), viewPortStartDate));
+        int endIndex = (int)ceil(Chart::bSearch(DoubleArray(dataSeries[TIME].constData(), m_currentIndex), viewPortEndDate));
+        int noOfPoints = endIndex - startIndex + 1;
+
+        layer->setXData(DoubleArray(dataSeries[TIME].constData() + startIndex, noOfPoints));
+
+        foreach (DataType type, valuesMap->keys())
+        {
+                //qDebug()<<"2Type: "<<type<<" "<<dataSeries[type].at(dataSeries[type].count()-1);
+
+                int index = metaObject()->indexOfEnumerator("DataType");
+                QMetaEnum metaEnum = metaObject()->enumerator(index);
+
+                layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), int(type), metaEnum.valueToKey(type));
+        }
+
+        //layer->addDataSet(DoubleArray(dataSeries[RAW_1].constData() + startIndex, noOfPoints), 0xff0000, "Alpha");
+        //layer->addDataSet(DoubleArray(dataSeries[RAW_2].constData() + startIndex, noOfPoints), 0x00cc00, "Beta");
+        /*layer->addDataSet(DoubleArray(dataSeries[RAW_3].constData() + startIndex, noOfPoints), 0xffcc00, "Gama");*/
 
         if (m_currentIndex > 0)
             c->xAxis()->setDateScale(viewPortStartDate, viewPortEndDate);
