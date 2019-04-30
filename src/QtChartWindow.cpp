@@ -72,14 +72,9 @@ QtChartWindow::QtChartWindow(QWidget* parent) :
     label->setText(tr("Name"));
     curvesWidgetLayout->addWidget(label, labelRow, 2);
 
-    // Value
     value = new QLabel(this);
     value->setText(tr("Value"));
     curvesWidgetLayout->addWidget(value, labelRow, 3);
-
-    //QTimer *timerRefresh = new QTimer(this);
-    //timerRefresh->start(100);
-    //connect(timerRefresh, SIGNAL(timeout()), SLOT(refresh()));
 }
 
 QtChartWindow::~QtChartWindow()
@@ -230,20 +225,12 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
     }
 
     dataSeries[TIME].append(usec);
-    //dataSeries[RAW_1].append(valuesList[valuesMap->value(RAW_1)]);
-    //dataSeries[RAW_2].append(valuesList[valuesMap->value(RAW_2)]);
-    //dataSeries[RAW_3].append(valuesList[valuesMap->value(RAW_3)]);
 
     foreach (const DataType type2, valuesMap->keys())
     {
         qDebug()<<"valuesMap->keys: "<<valuesMap->keys().count();
 
-        //if(type2 == unit)
-        {
-            dataSeries[unit].append(valuesList[valuesMap->value(unit)]);
-
-           //break;
-        }
+        dataSeries[type2].append(valuesList[valuesMap->value(type2)]);
     }
 
     ++m_currentIndex;
@@ -305,8 +292,9 @@ void QtChartWindow::getData()
         valueChanged("RAW_1", RAW_1, dataA, currentTime);
         valueChanged("RAW_2", RAW_2, dataB, currentTime);
         valueChanged("RAW_3", RAW_3, dataC, currentTime);
-
-        //++m_currentIndex;
+        valueChanged("RAW_4", RAW_4, dataA/2, currentTime);
+        valueChanged("RAW_5", RAW_5, dataB/2, currentTime);
+        valueChanged("RAW_6", RAW_6, dataC/2, currentTime);
 
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
     }
@@ -349,12 +337,12 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
 
         foreach (DataType type, valuesMap->keys())
         {
-                //qDebug()<<"2Type: "<<type<<" "<<dataSeries[type].at(dataSeries[type].count()-1);
+            //qDebug()<<"2Type: "<<type<<" "<<dataSeries[type].at(dataSeries[type].count()-1);
 
-                int index = metaObject()->indexOfEnumerator("DataType");
-                QMetaEnum metaEnum = metaObject()->enumerator(index);
+            int index = metaObject()->indexOfEnumerator("DataType");
+            QMetaEnum metaEnum = metaObject()->enumerator(index);
 
-                layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), int(type), metaEnum.valueToKey(type));
+            layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), int(type), metaEnum.valueToKey(type));
         }
 
         //layer->addDataSet(DoubleArray(dataSeries[RAW_1].constData() + startIndex, noOfPoints), 0xff0000, "Alpha");
@@ -483,9 +471,9 @@ quint64 QtChartWindow::getUnixTime(quint64 time)
 #ifndef _MSC_VER
     else if (time < 1261440000000000LLU)
 #else
-        else if (time < 1261440000000000)
+    else if (time < 1261440000000000)
 #endif
-        {
+    {
         if (onboardTimeOffset == 0)
         {
             onboardTimeOffset = QtConfiguration::getGroundTimeNow() - time/1000;
