@@ -75,6 +75,33 @@ QtChartWindow::QtChartWindow(QWidget* parent) :
     value = new QLabel(this);
     value->setText(tr("Value"));
     curvesWidgetLayout->addWidget(value, labelRow, 3);
+
+    colors = QList<int>();
+    nextColor = 0;
+
+    ///> Color map for plots, includes 20 colors
+    ///> Map will start from beginning when the first 20 colors are exceeded
+    colors.append(0xFF0000);
+    colors.append(0x0B2161);
+    colors.append(0x0080FF);
+    colors.append(0xB45F04);
+    colors.append(0x819FF7);
+    colors.append(0x21610B);
+    colors.append(0xFE2E64);
+    colors.append(0x40FF00);
+    colors.append(0x8A0886);
+    colors.append(0x173B0B);
+
+    colors.append(0xFF0000);
+    colors.append(0x0B2161);
+    colors.append(0x0080FF);
+    colors.append(0xB45F04);
+    colors.append(0x819FF7);
+    colors.append(0x21610B);
+    colors.append(0xFE2E64);
+    colors.append(0x40FF00);
+    colors.append(0x8A0886);
+    colors.append(0x173B0B);
 }
 
 QtChartWindow::~QtChartWindow()
@@ -338,11 +365,12 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
         foreach (DataType type, valuesMap->keys())
         {
             //qDebug()<<"2Type: "<<type<<" "<<dataSeries[type].at(dataSeries[type].count()-1);
-
+            bool ok;
             int index = metaObject()->indexOfEnumerator("DataType");
             QMetaEnum metaEnum = metaObject()->enumerator(index);
 
-            layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), int(type), metaEnum.valueToKey(type));
+
+            layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), getNextColor(type), metaEnum.valueToKey(type));
         }
 
         //layer->addDataSet(DoubleArray(dataSeries[RAW_1].constData() + startIndex, noOfPoints), 0xff0000, "Alpha");
@@ -488,3 +516,12 @@ quint64 QtChartWindow::getUnixTime(quint64 time)
     }
 }
 
+int QtChartWindow::getNextColor(int nextColor)
+{
+    if(nextColor >= colors.count())
+    {
+        nextColor = nextColor-colors.count();
+    }
+
+    return colors[nextColor];
+}

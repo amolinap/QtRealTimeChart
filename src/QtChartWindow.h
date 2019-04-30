@@ -84,6 +84,8 @@ private:
     QMap<QString, double> intData;           ///< Current values for integer-valued curves
     QMap<DataType, int> *valuesMap;
     quint64 onboardTimeOffset;
+    QList<int> colors;
+    int nextColor;
 
 private slots:
     void onMouseUsageChanged(int mouseUsage);       // Pointer/zoom in/zoom out button clicked
@@ -100,7 +102,7 @@ private slots:
     void valueChanged(const QString type, DataType unit, double parameterValue, quint64 usec);
     void appendData(int uasId, const QString& curve, DataType unit, int value, quint64 usec);
     void appendData(int uasId, const QString& curve, DataType unit, double value, quint64 usec);
-
+    int getNextColor(int nextColor);
 };
 
 #endif
