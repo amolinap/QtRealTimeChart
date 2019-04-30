@@ -6,8 +6,6 @@
 #include <QTimer>
 #include <QLabel>
 #include <QScrollBar>
-#include <QMap>
-#include <QList>
 #include "qchartviewer.h"
 
 
@@ -28,19 +26,17 @@ private:
     static const int zoomInLimit = 10;
 
     double m_timeStamps[sampleSize];	// The timestamps for the data series
-    //double m_dataSeriesA[sampleSize];	// The values for the data series A
+    double m_dataSeriesA[sampleSize];	// The values for the data series A
     double m_dataSeriesB[sampleSize];	// The values for the data series B
     double m_dataSeriesC[sampleSize];	// The values for the data series C
-    QMap<int, QVector<double> > valores;
 
-    quint32 m_currentIndex;                 // Index of the array position to which new values are added.
+    int m_currentIndex;                 // Index of the array position to which new values are added.
 
     QDateTime m_nextDataTime;           // Used by the random number generator to generate realtime data.
 
     QLabel *m_ValueA;                   // Label to display the realtime value A
     QLabel *m_ValueB;                   // Label to display the realtime value B
     QLabel *m_ValueC;                   // Label to display the realtime value C
-    QLabel *index;
 
     QChartViewer *m_ChartViewer;        // QChartViewer control
     QTimer *m_ChartUpdateTimer;         // The chart update timer

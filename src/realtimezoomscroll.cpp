@@ -12,6 +12,17 @@
 
 using namespace std;
 
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+    app.setStyleSheet("* {font-family:arial;font-size:11px}");
+    RealTimeZoomScroll demo;
+    demo.show();
+    return app.exec();
+}
+
+
 static const int DataInterval = 250;
 
 RealTimeZoomScroll::RealTimeZoomScroll(QWidget *parent) :
@@ -51,12 +62,6 @@ RealTimeZoomScroll::RealTimeZoomScroll(QWidget *parent) :
     savePB->setStyleSheet("QPushButton { text-align:left; padding:5px}");
     savePB->setGeometry(4, 120, 112, 28);
     connect(savePB, SIGNAL(clicked(bool)), SLOT(onSave(bool)));
-
-    // index Value display
-    //(new QLabel("Alpha", frame))->setGeometry(6, 280, 48, 21);
-    index = new QLabel(frame);
-    index->setGeometry(4, 156, 112, 28);
-    index->setFrameShape(QFrame::StyledPanel);
 
     // The Pointer/Zoom In/Zoom Out buttons form a button group
     QButtonGroup *mouseUsage = new QButtonGroup(frame);
@@ -106,7 +111,7 @@ RealTimeZoomScroll::RealTimeZoomScroll(QWidget *parent) :
 
     // Clear data arrays to Chart::NoValue
     for (int i = 0; i < sampleSize; ++i)
-        m_timeStamps[i] = m_dataSeriesB[i] = m_dataSeriesC[i] = Chart::NoValue;
+        m_timeStamps[i] = m_dataSeriesA[i] = m_dataSeriesB[i] = m_dataSeriesC[i] = Chart::NoValue;
     m_currentIndex = 0;
 
     // Set m_nextDataTime to the current time. It is used by the real time random number
@@ -132,8 +137,6 @@ RealTimeZoomScroll::RealTimeZoomScroll(QWidget *parent) :
     // Can start now
     updatePeriod->setCurrentIndex(3);
     m_ChartUpdateTimer->start();
-
-
 }
 
 RealTimeZoomScroll::~RealTimeZoomScroll()
@@ -196,7 +199,7 @@ void RealTimeZoomScroll::onDataTimer()
         double dataC = 150 + 100 * cos(p / 6.7) * cos(p / 11.9);
 
         // In this demo, if the data arrays are full, the oldest 5% of data are discarded.
-        /*if (m_currentIndex >= sampleSize)
+        if (m_currentIndex >= sampleSize)
         {
             m_currentIndex = sampleSize * 95 / 100 - 1;
 
@@ -208,20 +211,14 @@ void RealTimeZoomScroll::onDataTimer()
                 m_dataSeriesB[i] = m_dataSeriesB[srcIndex];
                 m_dataSeriesC[i] = m_dataSeriesC[srcIndex];
             }
-        }*/
+        }
 
         // Store the new values in the current index position, and increment the index.
         m_timeStamps[m_currentIndex] = currentTime;
-        //m_dataSeriesA[m_currentIndex] = dataA;
+        m_dataSeriesA[m_currentIndex] = dataA;
         m_dataSeriesB[m_currentIndex] = dataB;
         m_dataSeriesC[m_currentIndex] = dataC;
-
-        valores[0].append(dataA);
-        valores[1].append(dataB);
-        valores[2].append(dataC);
-
         ++m_currentIndex;
-        index->setText(QString::number(m_currentIndex));
 
         m_nextDataTime = m_nextDataTime.addMSecs(DataInterval);
     }
@@ -231,9 +228,9 @@ void RealTimeZoomScroll::onDataTimer()
     // We provide some visual feedback to the latest numbers generated, so you can see the
     // data being generated.
     //
-    m_ValueA->setText(QString::number(valores[0].value(valores[0].count()-1), 'f', 2));
-    m_ValueB->setText(QString::number(valores[0].value(valores[0].count()-1), 'f', 2));
-    m_ValueC->setText(QString::number(valores[0].value(valores[0].count()-1), 'f', 2));
+    m_ValueA->setText(QString::number(m_dataSeriesA[m_currentIndex - 1], 'f', 2));
+    m_ValueB->setText(QString::number(m_dataSeriesB[m_currentIndex - 1], 'f', 2));
+    m_ValueC->setText(QString::number(m_dataSeriesC[m_currentIndex - 1], 'f', 2));
 }
 
 //
@@ -346,17 +343,10 @@ void RealTimeZoomScroll::drawChart(QChartViewer *viewer)
         int endIndex = (int)ceil(Chart::bSearch(DoubleArray(m_timeStamps, m_currentIndex), viewPortEndDate));
         int noOfPoints = endIndex - startIndex + 1;
 
-        QByteArray byteArray;
-        QDataStream stream(&byteArray, QIODevice::WriteOnly);
-
-        stream << valores[0];
-
-        //double *b = valores[0].;
-
         // Extract the visible data
         viewPortTimeStamps = DoubleArray(m_timeStamps+ startIndex, noOfPoints);
-        viewPortDataSeriesA = DoubleArray(valores[0].constData() + startIndex, noOfPoints);
-        viewPortDataSeriesB = DoubleArray( m_dataSeriesB + startIndex, noOfPoints);
+        viewPortDataSeriesA = DoubleArray(m_dataSeriesA + startIndex, noOfPoints);
+        viewPortDataSeriesB = DoubleArray(m_dataSeriesB + startIndex, noOfPoints);
         viewPortDataSeriesC = DoubleArray(m_dataSeriesC + startIndex, noOfPoints);
     }
 
@@ -379,12 +369,9 @@ void RealTimeZoomScroll::drawChart(QChartViewer *viewer)
 
     // As the data can lie outside the plotarea in a zoomed chart, we need enable clipping.
     c->setClipping();
-    //c->yAxis()->setReverse();
 
     // Add a title to the chart using 18pt Arial font
-    //c->addTitle("    Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
-    c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
-        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
+    c->addTitle("    Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
 
     // Add a legend box at (55, 25) using horizontal layout. Use 10pt Arial Bold as font. Set the
     // background and border color to transparent and use line style legend key.
@@ -420,7 +407,7 @@ void RealTimeZoomScroll::drawChart(QChartViewer *viewer)
 
     // Now we add the 3 data series to a line layer, using the color red (ff0000), green (00cc00)
     // and blue (0000ff)
-    layer->setXData(viewPortTimeStamps);    
+    layer->setXData(viewPortTimeStamps);
     layer->addDataSet(viewPortDataSeriesA, 0xff0000, "Alpha");
     layer->addDataSet(viewPortDataSeriesB, 0x00cc00, "Beta");
     layer->addDataSet(viewPortDataSeriesC, 0x0000ff, "Gamma");
