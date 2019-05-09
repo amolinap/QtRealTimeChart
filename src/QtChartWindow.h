@@ -98,7 +98,7 @@ private slots:
     void onViewPortChanged();                       // Viewport has changed
     void onHScrollBarChanged(int value);            // Scrollbar changed
 
-    void addItem(const QString name);
+    void addItem(const QString name, int color);
     void refresh();
     void valueChanged(const QString type, DataType unit, double parameterValue, quint64 usec);
     void appendData(int uasId, const QString& curve, DataType unit, int value, quint64 usec);

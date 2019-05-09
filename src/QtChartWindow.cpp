@@ -240,7 +240,7 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
         valuesMap->insert(unit, row);
         valuesList.append(parameterValue);
 
-        addItem(type);
+        addItem(type, getNextColor(valuesMap->key(row)));
         intData.insert(type, 0);
         checkLabel.insert(type, false);
     }
@@ -264,7 +264,7 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
     refresh();
 }
 
-void QtChartWindow::addItem(const QString name)
+void QtChartWindow::addItem(const QString name, int color)
 {
     QLabel* label;
     QLabel* value;
@@ -278,6 +278,8 @@ void QtChartWindow::addItem(const QString name)
 
     label = new QLabel(this);
     label->setText(name);
+    qDebug()<<tr("background-color: 0x%1; color: #FFFFFF; font-weight: bold;").arg(color, 6, 16, QLatin1Char( '0' ));
+    label->setStyleSheet(tr("background-color: #%1; color: #FFFFFF; font-weight: bold;").arg(color, 6, 16, QLatin1Char( '0' )));
     curvesWidgetLayout->addWidget(label, labelRow, 2);
 
     value = new QLabel(this);
