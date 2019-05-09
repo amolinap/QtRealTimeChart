@@ -82,6 +82,7 @@ private:
     QCheckBox* selectAllCheckBox;
     QMap<QString, QLabel*>* curveLabels;  ///< References to the curve labels
     QMap<QString, double> intData;           ///< Current values for integer-valued curves
+    QMap<QString, bool> checkLabel;
     QMap<DataType, int> *valuesMap;
     quint64 onboardTimeOffset;
     QList<int> colors;
@@ -103,6 +104,7 @@ private slots:
     void appendData(int uasId, const QString& curve, DataType unit, int value, quint64 usec);
     void appendData(int uasId, const QString& curve, DataType unit, double value, quint64 usec);
     int getNextColor(int nextColor);
+    void takeButtonClick(bool checked);
 };
 
 #endif

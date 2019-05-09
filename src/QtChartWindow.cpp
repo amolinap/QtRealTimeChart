@@ -242,6 +242,7 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
 
         addItem(type);
         intData.insert(type, 0);
+        checkLabel.insert(type, false);
     }
     else
     {
@@ -255,8 +256,6 @@ void QtChartWindow::valueChanged(const QString type, DataType unit, double param
 
     foreach (const DataType type2, valuesMap->keys())
     {
-        qDebug()<<"valuesMap->keys: "<<valuesMap->keys().count();
-
         dataSeries[type2].append(valuesList[valuesMap->value(type2)]);
     }
 
@@ -273,7 +272,8 @@ void QtChartWindow::addItem(const QString name)
     int labelRow = curvesWidgetLayout->rowCount();
 
     selectAllCheckBox = new QCheckBox("", this);
-    connect(selectAllCheckBox, SIGNAL(clicked(bool)), this, SLOT(selectAllCurves(bool)));
+    selectAllCheckBox->setObjectName(name);
+    connect(selectAllCheckBox, SIGNAL(clicked(bool)), this, SLOT(takeButtonClick(bool)));
     curvesWidgetLayout->addWidget(selectAllCheckBox, labelRow, 0, 1, 2);
 
     label = new QLabel(this);
@@ -364,18 +364,14 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
 
         foreach (DataType type, valuesMap->keys())
         {
-            //qDebug()<<"2Type: "<<type<<" "<<dataSeries[type].at(dataSeries[type].count()-1);
-            bool ok;
             int index = metaObject()->indexOfEnumerator("DataType");
             QMetaEnum metaEnum = metaObject()->enumerator(index);
 
-
-            layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), getNextColor(type), metaEnum.valueToKey(type));
+            if(checkLabel[metaEnum.valueToKey(type)])
+            {
+                layer->addDataSet(DoubleArray(dataSeries[type].constData() + startIndex, noOfPoints), getNextColor(type), metaEnum.valueToKey(type));
+            }
         }
-
-        //layer->addDataSet(DoubleArray(dataSeries[RAW_1].constData() + startIndex, noOfPoints), 0xff0000, "Alpha");
-        //layer->addDataSet(DoubleArray(dataSeries[RAW_2].constData() + startIndex, noOfPoints), 0x00cc00, "Beta");
-        /*layer->addDataSet(DoubleArray(dataSeries[RAW_3].constData() + startIndex, noOfPoints), 0xffcc00, "Gama");*/
 
         if (m_currentIndex > 0)
             c->xAxis()->setDateScale(viewPortStartDate, viewPortEndDate);
@@ -524,4 +520,19 @@ int QtChartWindow::getNextColor(int nextColor)
     }
 
     return colors[nextColor];
+}
+
+void QtChartWindow::takeButtonClick(bool checked)
+{
+    //Q_UNUSED(checked);
+
+    QCheckBox* button = qobject_cast<QCheckBox*>(QObject::sender());
+
+    if(button != NULL)
+    {
+        //activePlot->setVisible(button->objectName(), checked);
+        qDebug()<<button->objectName();
+        checkLabel[button->objectName()] = checked;
+        //m_ChartViewer->set
+    }
 }
