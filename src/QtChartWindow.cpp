@@ -339,20 +339,22 @@ void QtChartWindow::drawChart(QChartViewer *viewer)
     {
         XYChart *c = new XYChart(widthPlot, heightPlot);
 
-        c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
+        //c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xf0f6ff, 0xa0c0ff), -1, Chart::Transparent, 0xffffff, 0xffffff);
+        c->setPlotArea(55, 50, c->getWidth() - 85, c->getHeight() - 80, c->linearGradientColor(0, 50, 0, c->getHeight() - 35, 0xBDBDBD, 0x6E6E6E), -1, Chart::Transparent, 0x000000, 0x000000);
         c->setClipping();
-        c->addTitle("Realtime Chart with Zoom/Scroll and Track Line", "arial.ttf", 18);
+        c->addTitle("Telemetría", "arial.ttf", 18);
+        c->setBackground(0x6E6E6E);
 
-        LegendBox *b = c->addLegend(55, 25, false, "arialbd.ttf", 10);
+        /*LegendBox *b = c->addLegend(55, 25, false, "arialbd.ttf", 10);
         b->setBackground(Chart::Transparent);
-        b->setLineStyleKey();
+        b->setLineStyleKey();*/
 
         c->xAxis()->setColors(Chart::Transparent);
         c->yAxis()->setColors(Chart::Transparent);
         c->xAxis()->setLabelStyle("arial.ttf", 10);
         c->yAxis()->setLabelStyle("arial.ttf", 10);
         c->yAxis()->setTickLength(0);
-        c->yAxis()->setTitle("Ionic Temperature (C)", "arialbd.ttf", 12);
+        c->yAxis()->setTitle("Valores", "arialbd.ttf", 12);
 
         LineLayer *layer = c->addLineLayer();
         layer->setLineWidth(2);
